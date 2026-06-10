@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animal Image Classifier</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 400px;
+        }
+        #imagePreview {
+            max-width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none; /* Hidden until image is uploaded */
+            border: 2px dashed #ccc;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover { background-color: #0056b3; }
+        .result {
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>Animal Classifier</h2>
+        <p>Upload a Dog, Cat, Bird, Frog, or Horse</p>
+
+        <input type="file" id="imageInput" accept="image/*" style="margin-bottom: 15px;">
+        
+        <img id="imagePreview" src="" alt="Image Preview">
+        
+        <button id="predictBtn">Analyze Image</button>
+
+        <div id="resultBox" class="result"></div>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const predictBtn = document.getElementById('predictBtn');
+        const resultBox = document.getElementById('resultBox');
+
+        // 1. Show image preview when a user selects a file
+        imageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                    resultBox.innerHTML = ""; // Clear old results
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 2. Send the image to the Flask backend when button is clicked
+        predictBtn.addEventListener('click', async function() {
+            if (!imageInput.files[0]) {
+                alert("Please select an image first!");
+                return;
+            }
+
+            resultBox.innerHTML = "Analyzing...";
+            
+            // Package the image into a FormData object
+            const formData = new FormData();
+            formData.append("file", imageInput.files[0]);
+
+            try {
+                // Send a POST request to our Flask /predict endpoint
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    resultBox.innerHTML = `<span style="color:red">${data.error}</span>`;
+                } else {
+                    // Display the resulting label and confidence
+                    resultBox.innerHTML = `Prediction: <span style="color:#28a745">${data.label}</span><br>
+                                           <small>Confidence: ${data.confidence}%</small>`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                resultBox.innerHTML = "An error occurred during prediction.";
+            }
+        });
+    </script>
+</body>
+</html>
